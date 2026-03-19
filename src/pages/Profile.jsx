@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import './Profile.css';
 
-const API_BASE_URL = 'http://localhost:8080';
+const API_BASE_URL = '/api';
 
 function Profile() {
   const navigate = useNavigate();
@@ -44,23 +44,12 @@ function Profile() {
     fetchProfile();
   }, [userId]);
 
-  const normalizePhotoUrl = (url, bustCache = false) => {
-    if (!url || typeof url !== 'string') {
+  const getProfilePhotoSrc = (data) => {
+    const rawPhoto = data?.profilePhoto || data?.data?.profilePhoto || '';
+    if (typeof rawPhoto !== 'string') {
       return '';
     }
-
-    let normalized = url.trim();
-
-    if (!/^https?:\/\//i.test(normalized) && !normalized.startsWith('data:') && !normalized.startsWith('blob:')) {
-      normalized = `${API_BASE_URL}${normalized.startsWith('/') ? '' : '/'}${normalized}`;
-    }
-
-    if (!bustCache) {
-      return normalized;
-    }
-
-    const separator = normalized.includes('?') ? '&' : '?';
-    return `${normalized}${separator}t=${Date.now()}`;
+    return rawPhoto.trim();
   };
 
   const parseResponse = async (response) => {
@@ -74,14 +63,14 @@ function Profile() {
     return data;
   };
 
-  const fetchProfile = async (bustPhotoCache = false) => {
+  const fetchProfile = async () => {
     try {
       const headers = {};
       if (token) {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/profile/${userId}`, { headers });
+      const response = await fetch(`${API_BASE_URL}/profile/${userId}`, { headers });
       const data = await parseResponse(response);
 
       if (!response.ok) {
@@ -89,12 +78,14 @@ function Profile() {
         throw new Error(errorMsg);
       }
 
+      const profilePhoto = getProfilePhotoSrc(data);
+
       setProfile({
         fullName: data?.fullName || '',
         email: data.email || '',
         phone: data?.phone || '',
         bio: data?.bio || '',
-        profilePhoto: normalizePhotoUrl(data?.profilePhoto || data?.photoUrl || data?.photo || '', bustPhotoCache)
+        profilePhoto
       });
     } catch (err) {
       setMessage({ type: 'error', text: err.message });
@@ -136,7 +127,7 @@ function Profile() {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/profile/${userId}`, {
+      const response = await fetch(`${API_BASE_URL}/profile/${userId}`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({
@@ -185,7 +176,7 @@ function Profile() {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/profile/${userId}/password`, {
+      const response = await fetch(`${API_BASE_URL}/profile/${userId}/password`, {
         method: 'PUT',
         headers,
         body: JSON.stringify({
@@ -233,7 +224,7 @@ function Profile() {
         headers.Authorization = `Bearer ${token}`;
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/profile/${userId}/photo`, {
+      const response = await fetch(`${API_BASE_URL}/profile/${userId}/photo`, {
         method: 'POST',
         headers,
         body: formData
@@ -246,14 +237,12 @@ function Profile() {
         throw new Error(errorMsg);
       }
 
-      if (data && typeof data === 'object') {
-        const uploadedPhotoUrl = normalizePhotoUrl(data.profilePhoto || data.photoUrl || data.photo || data.url, true);
-        if (uploadedPhotoUrl) {
-          setProfile((prev) => ({ ...prev, profilePhoto: uploadedPhotoUrl }));
-        }
+      const uploadedPhoto = (typeof data?.fileReference === 'string' ? data.fileReference.trim() : '');
+      if (uploadedPhoto) {
+        setProfile((prev) => ({ ...prev, profilePhoto: uploadedPhoto }));
       }
 
-      await fetchProfile(true);
+      await fetchProfile();
       setMessage({ type: 'success', text: 'Photo uploaded successfully!' });
       e.target.value = '';
     } catch (err) {
@@ -275,6 +264,10 @@ function Profile() {
     );
   }
 
+  const displayName = profile.fullName?.trim()
+    || profile.email?.trim()?.split('@')[0]
+    || 'User';
+
   return (
     <div className="profile-page">
       <Navbar />
@@ -292,7 +285,11 @@ function Profile() {
         <div className="profile-card">
           <div className="profile-avatar">
             {profile.profilePhoto ? (
-              <img src={profile.profilePhoto} alt="Profile" />
+              <img
+                src={profile.profilePhoto}
+                alt="Profile"
+                onError={() => setProfile((prev) => ({ ...prev, profilePhoto: '' }))}
+              />
             ) : (
               <div className="avatar-placeholder">
                 <svg viewBox="0 0 24 24" fill="currentColor">
@@ -302,7 +299,7 @@ function Profile() {
             )}
           </div>
           <div className="profile-info">
-            <h2 className="profile-name">{profile.fullName || 'User'}</h2>
+            <h2 className="profile-name">{displayName}</h2>
             <p className="profile-email">{profile.email}</p>
             <p className="profile-status">{profile.phone || 'No phone added'}</p>
           </div>
@@ -338,7 +335,7 @@ function Profile() {
               <input
                 type="email"
                 value={profile.email}
-                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                readOnly
                 placeholder="Enter email"
               />
             </div>
