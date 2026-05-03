@@ -1,4 +1,4 @@
-import { fetchJson } from './apiConfig';
+import { fetchJson, proxyMangaDexImageUrl } from './apiConfig';
 
 const MANGADEX_PREFIX = 'mangadex:';
 
@@ -11,7 +11,8 @@ export function getMangaDexId(seriesId) {
 }
 
 export async function fetchLocalSeries() {
-  return fetchJson('/library/series');
+  const items = await fetchJson('/library/series');
+  return items.map(normalizeSeriesImages);
 }
 
 export async function fetchMangaDexSeries(query = '', limit = 24, filters = {}) {
@@ -29,16 +30,17 @@ export async function fetchMangaDexSeries(query = '', limit = 24, filters = {}) 
     params.set('order', filters.order);
   }
 
-  return fetchJson(`/sources/mangadex/series?${params.toString()}`);
+  const items = await fetchJson(`/sources/mangadex/series?${params.toString()}`);
+  return items.map(normalizeSeriesImages);
 }
 
 export async function fetchSeriesDetails(seriesId) {
   if (isMangaDexSeries(seriesId)) {
     const mangaId = encodeURIComponent(getMangaDexId(seriesId));
-    return fetchJson(`/sources/mangadex/series/${mangaId}`);
+    return normalizeSeriesImages(await fetchJson(`/sources/mangadex/series/${mangaId}`));
   }
 
-  return fetchJson(`/library/series/${encodeURIComponent(seriesId)}`);
+  return normalizeSeriesImages(await fetchJson(`/library/series/${encodeURIComponent(seriesId)}`));
 }
 
 export async function fetchChapters(seriesId) {
@@ -54,10 +56,12 @@ export async function fetchChapterPages(seriesId, chapterId) {
   if (isMangaDexSeries(seriesId)) {
     const mangaId = encodeURIComponent(getMangaDexId(seriesId));
     const encodedChapterId = encodeURIComponent(chapterId);
-    return fetchJson(`/sources/mangadex/series/${mangaId}/chapters/${encodedChapterId}/pages`);
+    const pages = await fetchJson(`/sources/mangadex/series/${mangaId}/chapters/${encodedChapterId}/pages`);
+    return pages.map(normalizePageImages);
   }
 
-  return fetchJson(`/reader/series/${encodeURIComponent(seriesId)}/chapters/${encodeURIComponent(chapterId)}/pages`);
+  const pages = await fetchJson(`/reader/series/${encodeURIComponent(seriesId)}/chapters/${encodeURIComponent(chapterId)}/pages`);
+  return pages.map(normalizePageImages);
 }
 
 export async function fetchChapterNavigation(seriesId, chapterId) {
@@ -68,4 +72,18 @@ export async function fetchChapterNavigation(seriesId, chapterId) {
   }
 
   return fetchJson(`/reader/series/${encodeURIComponent(seriesId)}/chapters/${encodeURIComponent(chapterId)}/navigation`);
+}
+
+function normalizeSeriesImages(series) {
+  return {
+    ...series,
+    coverImage: proxyMangaDexImageUrl(series.coverImage)
+  };
+}
+
+function normalizePageImages(page) {
+  return {
+    ...page,
+    imageUrl: proxyMangaDexImageUrl(page.imageUrl)
+  };
 }

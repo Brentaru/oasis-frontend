@@ -1,4 +1,4 @@
-import { fetchJson } from './apiConfig';
+import { fetchJson, proxyMangaDexImageUrl } from './apiConfig';
 
 const BOOKMARKS_KEY = 'oasis.bookmarks';
 const HISTORY_KEY = 'oasis.history';
@@ -37,7 +37,7 @@ function writeList(key, items) {
 }
 
 export function getBookmarks() {
-  return readList(BOOKMARKS_KEY);
+  return readList(BOOKMARKS_KEY).map(normalizeStoredImages);
 }
 
 export async function fetchBookmarks() {
@@ -46,7 +46,7 @@ export async function fetchBookmarks() {
     return getBookmarks();
   }
 
-  const items = await fetchJson(`/account-library/${encodeURIComponent(userId)}/saved`);
+  const items = (await fetchJson(`/account-library/${encodeURIComponent(userId)}/saved`)).map(normalizeStoredImages);
   writeList(BOOKMARKS_KEY, items);
   return items;
 }
@@ -141,7 +141,7 @@ export async function fetchHistory() {
     return getHistory();
   }
 
-  const items = (await fetchJson(`/account-library/${encodeURIComponent(userId)}/history`)).map((item) => ({
+  const items = (await fetchJson(`/account-library/${encodeURIComponent(userId)}/history`)).map((item) => normalizeStoredImages({
     ...item,
     readAt: item.updatedAt,
     lastReadPage: item.lastReadPage || 1
@@ -178,4 +178,11 @@ export async function saveHistoryRemote(entry) {
 
 export function getLatestHistoryItem() {
   return getHistory()[0] || null;
+}
+
+function normalizeStoredImages(item) {
+  return {
+    ...item,
+    coverImage: proxyMangaDexImageUrl(item.coverImage)
+  };
 }
