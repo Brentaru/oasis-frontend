@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { fetchJson } from '../apiConfig';
 import './Auth.css';
 
 function Login() {
@@ -24,27 +25,13 @@ function Login() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8080/api/auth/login', {
+      const data = await fetchJson('/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(formData)
       });
-
-      // Safe response handling - read as text first
-      const text = await response.text();
-      let data = null;
-      try {
-        data = text ? JSON.parse(text) : null;
-      } catch {
-        data = text;
-      }
-
-      if (!response.ok) {
-        const errorMsg = typeof data === 'string' ? data : (data?.message || 'Login failed');
-        throw new Error(errorMsg);
-      }
 
       // Save user data to localStorage
       // Adapt to whatever shape your backend returns
@@ -56,10 +43,11 @@ function Login() {
         if (userId) {
           localStorage.setItem('userId', userId);
         }
+        window.dispatchEvent(new Event('oasis:user-updated'));
       }
 
       // Navigate to dashboard
-      navigate('/dashboard');
+      navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.message || 'Something went wrong');
     } finally {

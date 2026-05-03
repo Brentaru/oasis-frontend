@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { fetchJson } from '../apiConfig';
 import './Auth.css';
 
 function Register() {
@@ -31,7 +32,7 @@ function Register() {
     setLoading(true);
 
     try {
-      const response = await fetch('http://localhost:8080/api/auth/register', {
+      await fetchJson('/auth/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -42,20 +43,6 @@ function Register() {
           confirmPassword: formData.confirmPassword
         })
       });
-
-      // Safe response handling - read as text first
-      const text = await response.text();
-      let data = null;
-      try {
-        data = text ? JSON.parse(text) : null;
-      } catch {
-        data = text;
-      }
-
-      if (!response.ok) {
-        const errorMsg = typeof data === 'string' ? data : (data?.message || 'Registration failed');
-        throw new Error(errorMsg);
-      }
 
       // Navigate to login after successful registration
       navigate('/login');

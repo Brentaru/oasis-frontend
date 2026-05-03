@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: oasis-frontend
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    envVars:
+      - key: VITE_API_BASE_URL
+        value: https://oasis-backend-zfr5.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
