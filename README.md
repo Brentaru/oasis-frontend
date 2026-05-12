@@ -1,16 +1,98 @@
-# React + Vite
+# Oasis Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React web client for Oasis, a manga reading app with account login, MangaDex browsing, saved library titles, reading history, and profile management.
 
-Currently, two official plugins are available:
+## Tech Stack
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- React 19
+- Vite 7
+- React Router 7
+- ESLint 9
+- Render static site deployment
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Login and registration
+- Protected dashboard routes
+- MangaDex browse with filters
+- Series details and chapter list
+- Web reader
+- Saved library
+- Profile menu and profile management
 
-## Expanding the ESLint configuration
+## Project Structure
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```text
+src
++-- components   # Shared navigation and profile menu UI
++-- pages        # Route-level pages
++-- apiConfig.js # Backend URL helpers and fetch wrapper
++-- authSession.js
++-- readingStore.js
++-- sourceApi.js # Library and MangaDex API helpers
+```
+
+## Getting Started
+
+Install dependencies:
+
+```powershell
+npm install
+```
+
+Create a local environment file from the example:
+
+```powershell
+Copy-Item .env.example .env.local
+```
+
+Start the development server:
+
+```powershell
+npm run dev
+```
+
+Vite will print the local URL, usually `http://localhost:5173`.
+
+## Environment Variables
+
+```text
+VITE_API_BASE_URL=https://oasis-backend-zfr5.onrender.com/api
+```
+
+In development, if `VITE_API_BASE_URL` is not set, the app uses `/api`. In production, it falls back to the Render backend URL above.
+
+## Available Scripts
+
+```powershell
+npm run dev      # Start Vite locally
+npm run build    # Build production assets into dist
+npm run preview  # Preview the production build
+npm run lint     # Run ESLint
+```
+
+## Routes
+
+- `/login`
+- `/register`
+- `/dashboard`
+- `/browse`
+- `/library`
+- `/library/:seriesId`
+- `/reader/:seriesId/:chapterId`
+- `/profile`
+
+Unauthenticated users are redirected to `/login`; authenticated users are redirected away from public auth pages to `/dashboard`.
+
+## Deployment
+
+This project includes `render.yaml` for Render static site deployment.
+
+Render settings:
+
+- Build command: `npm ci && npm run build`
+- Publish directory: `dist`
+- Environment variable: `VITE_API_BASE_URL`
+- Rewrite: `/*` to `/index.html`
+
+See `RENDER_DEPLOYMENT.md` for the manual deployment checklist.
